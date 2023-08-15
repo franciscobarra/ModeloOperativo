@@ -1,0 +1,96 @@
+_schema-version: '3.1'
+ID: ModeloOperativo
+version: 1.0.0
+description: "A simple CAP project."
+parameters:
+  enable-parallel-deployments: true
+build-parameters:
+  before-all:
+    - builder: custom
+      commands:
+        - npx cds build --production
+modules:
+  - name: ModeloOperativo-srv
+    type: nodejs
+    path: gen/srv
+    parameters:
+      buildpack: nodejs_buildpack
+    build-parameters:
+      builder: npm
+    provides:
+      - name: srv-api # required by consumers of CAP services (e.g. approuter)
+        properties:
+          srv-url: ${default-url}
+    requires:
+      - name: ModeloOperativo-db
+      - name: ModeloOperativo-auth
+      - name: ModeloOperativo-destination-service
+      - name: ModeloOperativo-connectivity-service
+      - name: ModeloOperativo-approuter
+
+  - name: ModeloOperativo-db-deployer
+    type: hdb
+    path: db
+    parameters:
+      buildpack: nodejs_buildpack
+    requires:
+      - name: ModeloOperativo-db
+
+  - name: ModeloOperativo-approuter
+    properties:
+      NODE_DEBUG: 'xssec,passport,http,https'
+    type: approuter.nodejs
+    path: app/ # from cds.env.folders. Consider also cds.env.build.target -> gen/app
+    parameters:
+      keep-existing-routes: true
+      disk-quota: 256M
+      memory: 256M
+    requires:
+      - name: srv-api
+        group: destinations
+        properties:
+          name: srv-api # must be used in xs-app.json as well
+          url: ~{srv-url}
+          forwardAuthToken: true
+      - name: ModeloOperativo-auth
+      - name: ModeloOperativo-srv
+      - name: ModeloOperativo-destination-service
+      - name: ModeloOperativo-connectivity-service
+      - name: ModeloOperativo-logging
+
+resources:
+  - name: ModeloOperativo-db
+    type: com.sap.xs.hdi-container
+    parameters:
+      service: hana
+      service-plan: hdi-shared
+  - name: ModeloOperativo-auth
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: xsuaa
+      service-key:
+        name: key-xsuaa
+      service-plan: application
+      path: ./xs-security.json
+      config:
+        xsappname: modeloperativo1
+        tenant-mode: dedicated
+  - name: ModeloOperativo-connectivity-service
+    parameters:
+      service-plan: lite
+      service: connectivity
+  - name: ModeloOperativo-destination-service
+    parameters:
+      service-plan: lite
+      service: destination
+    type: org.cloudfoundry.managed-service
+  - name: ModeloOperativo-uaa-apiaccess
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: xsuaa
+      service-plan: apiaccess
+  - name: ModeloOperativo-logging
+    type: org.cloudfoundry.managed-service
+    parameters:
+       service: application-logs
+       service-plan: lite

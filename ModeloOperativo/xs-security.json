@@ -1,0 +1,35 @@
+{
+  "xsappname": "modeloperativo1",
+  "tenant-mode": "dedicated",
+  "scopes": [
+    {
+        "name": "uaa.user",
+        "description": "UAA"
+    },
+    {
+        "name": "$XSAPPNAME.simple-approuter.admin",
+        "description": "Simple approuter administrator"
+    }
+],
+  "attributes": [],
+  "role-templates": [
+    {
+        "name": "simple-approuter-admin",
+        "description": "Simple approuter administrator",
+        "scope-references": [
+            "$XSAPPNAME.simple-approuter.admin"
+        ]
+    }
+],
+
+"oauth2-configuration": {
+  "credential-types": [
+    "binding-secret", 
+    "x509"
+  ],
+  "redirect-uris": [
+      "https://*.cfapps.us10-001.hana.ondemand.com/**",
+      "https://*.applicationstudio.cloud.sap/**"
+    ]
+  }
+}
