@@ -5,10 +5,6 @@ description: "A simple CAP project."
 parameters:
   enable-parallel-deployments: true
 build-parameters:
-  before-all:
-    - builder: custom
-      commands:
-        - npx cds build --production
 modules:
   - name: ModeloOperativo-srv
     type: nodejs
